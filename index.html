@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f1210">
+  <meta name="description" content="JavaTory — локальный тренажёр по Java Core, базам данных, Spring, Kafka и архитектуре для собеседований Senior Java Backend. 350 вопросов с мгновенной проверкой.">
+  <title>JavaTory — тренажёр Senior Java Backend</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <div class="grid-noise" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#" id="brand-home" aria-label="JavaTory — на главную">
+      <span class="brand-mark" aria-hidden="true">J<span>}</span></span>
+      <span class="brand-text">
+        <strong>JavaTory</strong>
+        <small>senior backend trainer</small>
+      </span>
+    </a>
+
+    <div class="topbar-right">
+      <div class="header-progress" title="Уникальные вопросы, на которые вы отвечали">
+        <span class="header-progress-dot" aria-hidden="true"></span>
+        <span><b id="header-answered">0</b> / <span id="header-total">350</span></span>
+        <span class="header-progress-label">изучено</span>
+      </div>
+      <button class="ghost-btn reset-btn" id="reset-progress" type="button" title="Сбросить прогресс, серию и закладки">
+        <span aria-hidden="true">↺</span>
+        <span class="reset-label">Сбросить</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="app">
+    <!-- Главный экран -->
+    <section id="home-view" class="view" aria-labelledby="hero-title">
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="eyebrow-dot" aria-hidden="true"></span>
+            <span><b data-total>350</b> вопросов · Senior Backend</span>
+          </div>
+          <h1 id="hero-title">Проверьте себя<br><em>до собеседования.</em></h1>
+          <p class="hero-lead">
+            Java Core, коллекции, многопоточность, JVM, SQL, JPA, Spring, Kafka и архитектура.
+            Один клик — и вы сразу видите, верно ли ответили и почему.
+          </p>
+          <div class="hero-actions">
+            <button class="btn btn-primary btn-large" id="start-mix" type="button">
+              <span>Начать микс</span>
+              <span class="btn-arrow" aria-hidden="true">→</span>
+            </button>
+            <button class="btn btn-secondary btn-large" id="start-bookmarks" type="button">
+              <span aria-hidden="true">☆</span>
+              <span>Мои закладки</span>
+              <span class="btn-badge" id="bookmarks-count">0</span>
+            </button>
+          </div>
+          <p class="mix-meta" id="mix-meta">20 вопросов · все темы · случайный порядок</p>
+          <ul class="hero-points" aria-label="Возможности тренажёра">
+            <li><span aria-hidden="true">✓</span> Мгновенный разбор ответа</li>
+            <li><span aria-hidden="true">✓</span> Прогресс сохраняется локально</li>
+            <li><span aria-hidden="true">✓</span> Работает без сборки и бэкенда</li>
+          </ul>
+        </div>
+
+        <aside class="terminal-card" aria-label="Сводка тренажёра">
+          <div class="terminal-head">
+            <div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span>senior@backend:~/javatorty</span>
+          </div>
+          <div class="terminal-body">
+            <p><span class="prompt">$</span> java -jar javatorty.jar</p>
+            <p class="terminal-muted">Bootstrapping question bank...</p>
+            <p><span class="terminal-key">loaded</span> <b data-total>350</b> questions</p>
+            <p><span class="terminal-key">topics</span> <b>9</b> categories</p>
+            <p><span class="terminal-key">mode</span> instant-feedback</p>
+            <p><span class="terminal-key">storage</span> localStorage</p>
+            <p class="terminal-success">✓ ready for the interview</p>
+            <p class="terminal-prompt"><span class="prompt">$</span> <span class="caret" aria-hidden="true"></span></p>
+          </div>
+          <div class="terminal-foot">
+            <span>Java 21</span>
+            <span>Spring 6</span>
+            <span>Kafka 3.x</span>
+            <span>SQL</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="stats-bar" aria-label="Ваша статистика">
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">◐</span>
+          <div>
+            <span class="stat-value" id="stat-answered">0</span>
+            <span class="stat-label">вопросов изучено</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">◎</span>
+          <div>
+            <span class="stat-value" id="stat-accuracy">—</span>
+            <span class="stat-label">точность ответов</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">↗</span>
+          <div>
+            <span class="stat-value" id="stat-streak">0</span>
+            <span class="stat-label">лучшая серия</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">☆</span>
+          <div>
+            <span class="stat-value" id="stat-bookmarks">0</span>
+            <span class="stat-label">в закладках</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="dashboard" aria-labelledby="categories-title">
+        <div class="section-head">
+          <div>
+            <p class="kicker">База знаний</p>
+            <h2 id="categories-title">Выберите направление</h2>
+          </div>
+          <div class="controls" aria-label="Настройки сессии">
+            <label class="select-wrap">
+              <span>Уровень</span>
+              <select id="difficulty-filter">
+                <option value="all">Все уровни</option>
+                <option value="middle">Разминка</option>
+                <option value="senior">Senior</option>
+                <option value="expert">Expert</option>
+              </select>
+            </label>
+            <label class="select-wrap">
+              <span>Длина</span>
+              <select id="limit-filter">
+                <option value="20">20 вопросов</option>
+                <option value="30">30 вопросов</option>
+                <option value="50">50 вопросов</option>
+                <option value="0">Все вопросы</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div id="category-grid" class="category-grid"></div>
+      </section>
+
+      <section class="quick-panel" aria-labelledby="quick-title">
+        <div class="quick-copy">
+          <p class="kicker">Умные режимы</p>
+          <h2 id="quick-title">Работа над ошибками</h2>
+          <p>Повторите только те вопросы, где ошиблись, или вернитесь к отмеченным. Прогресс по каждой теме виден на карточках.</p>
+        </div>
+        <div class="quick-actions">
+          <button class="quick-action quick-action-warm" id="start-mistakes" type="button">
+            <span class="quick-action-icon" aria-hidden="true">↺</span>
+            <span class="quick-action-text">
+              <strong>Повторить ошибки</strong>
+              <small id="mistakes-hint">Пока нет ошибок — отличный старт</small>
+            </span>
+            <span class="quick-action-arrow" aria-hidden="true">→</span>
+          </button>
+          <button class="quick-action" id="start-bookmarks-2" type="button">
+            <span class="quick-action-icon" aria-hidden="true">☆</span>
+            <span class="quick-action-text">
+              <strong>Пройти закладки</strong>
+              <small id="bookmarks-hint">Отмечайте вопросы звёздочкой во время теста</small>
+            </span>
+            <span class="quick-action-arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="how" aria-labelledby="how-title">
+        <div class="section-head">
+          <div>
+            <p class="kicker">Как это работает</p>
+            <h2 id="how-title">Три шага до уверенного ответа</h2>
+          </div>
+        </div>
+        <div class="how-grid">
+          <article class="how-card">
+            <span class="how-number">01</span>
+            <h3>Выберите тему</h3>
+            <p>Начните с общей смеси или сфокусируйтесь на Java Core, БД, Spring или Kafka. Уровень и длину сессии можно настроить.</p>
+          </article>
+          <article class="how-card">
+            <span class="how-number">02</span>
+            <h3>Отвечайте без пауз</h3>
+            <p>После выбора варианта сразу видно, правильно ли вы ответили, какой ответ верный и объяснение. Без переключения экранов.</p>
+          </article>
+          <article class="how-card">
+            <span class="how-number">03</span>
+            <h3>Закрывайте пробелы</h3>
+            <p>Ошибки и закладки сохраняются. Возвращайтесь к ним, пока точность по теме не станет уверенной.</p>
+          </article>
+        </div>
+      </section>
+    </section>
+
+    <!-- Экран прохождения теста -->
+    <section id="quiz-view" class="view" hidden aria-labelledby="question-text">
+      <div class="quiz-top">
+        <button class="ghost-btn" id="quit-quiz" type="button">
+          <span aria-hidden="true">←</span> Выйти
+        </button>
+        <div class="quiz-session-title" id="quiz-session-title">Сессия</div>
+        <div class="quiz-score" id="quiz-score">0 верно</div>
+      </div>
+
+      <div class="quiz-progress">
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="quiz-progress">
+          <span id="quiz-progress-fill"></span>
+        </div>
+        <span class="quiz-progress-label" id="quiz-progress-label">Вопрос 1 из 20</span>
+      </div>
+
+      <div class="quiz-layout">
+        <article class="question-card" id="question-card">
+          <div class="question-head">
+            <div class="question-badges">
+              <span class="badge badge-category" id="q-category">Java Core</span>
+              <span class="badge badge-level" id="q-level">Senior</span>
+            </div>
+            <button class="icon-btn bookmark-btn" id="bookmark-btn" type="button" aria-label="Добавить вопрос в закладки" aria-pressed="false">☆</button>
+          </div>
+
+          <div id="q-code-wrap" class="code-wrap" hidden>
+            <pre><code id="q-code"></code></pre>
+          </div>
+
+          <h2 class="question-text" id="question-text"></h2>
+          <div class="options" id="options" role="group" aria-label="Варианты ответа"></div>
+          <div class="feedback" id="feedback" role="status" aria-live="polite" hidden></div>
+
+          <div class="question-actions">
+            <button class="btn btn-ghost-arrow" id="prev-btn" type="button">
+              <span aria-hidden="true">←</span> Назад
+            </button>
+            <button class="btn btn-primary" id="next-btn" type="button" disabled>
+              <span id="next-label">Выберите ответ</span>
+              <span class="btn-arrow" aria-hidden="true">→</span>
+            </button>
+          </div>
+        </article>
+
+        <aside class="session-side">
+          <div class="side-card">
+            <div class="side-head">
+              <span>Карта сессии</span>
+              <span id="side-count">0 / 20</span>
+            </div>
+            <div class="question-map" id="question-map" aria-label="Навигация по вопросам сессии"></div>
+            <div class="map-legend">
+              <span><i class="legend-dot is-current"></i> текущий</span>
+              <span><i class="legend-dot is-correct"></i> верно</span>
+              <span><i class="legend-dot is-wrong"></i> ошибка</span>
+            </div>
+          </div>
+
+          <div class="side-card side-tip">
+            <div class="side-head"><span>Горячие клавиши</span></div>
+            <div class="shortcut"><span class="key">1</span>–<span class="key">4</span><span>выбрать ответ</span></div>
+            <div class="shortcut"><span class="key">Enter</span><span>следующий вопрос</span></div>
+            <div class="shortcut"><span class="key">B</span><span>закладка</span></div>
+            <div class="shortcut"><span class="key">←</span><span>предыдущий вопрос</span></div>
+          </div>
+
+          <div class="side-card side-note">
+            <span class="note-mark">i</span>
+            <p>Ответ фиксируется сразу. Вернуться и изменить его нельзя — как на реальном интервью.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Экран результатов -->
+    <section id="result-view" class="view" hidden aria-labelledby="result-title">
+      <div class="result-hero">
+        <div class="result-ring" id="result-ring" style="--value: 0">
+          <div class="result-ring-inner">
+            <strong id="result-percent">0%</strong>
+            <span>результат</span>
+          </div>
+        </div>
+        <div class="result-copy">
+          <p class="kicker">Сессия завершена</p>
+          <h1 id="result-title">Хорошая работа</h1>
+          <p id="result-subtitle">Разберём ответы и закроем пробелы.</p>
+          <div class="result-actions">
+            <button class="btn btn-primary" id="result-repeat-mistakes" type="button">Повторить ошибки</button>
+            <button class="btn btn-secondary" id="result-new-mix" type="button">Новый микс</button>
+            <button class="btn btn-ghost-arrow" id="result-home" type="button">На главную</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-stats" id="result-stats"></div>
+
+      <div class="result-grid">
+        <section class="result-panel" aria-labelledby="result-categories-title">
+          <div class="panel-head">
+            <h2 id="result-categories-title">По категориям</h2>
+            <span class="panel-note">в этой сессии</span>
+          </div>
+          <div id="result-categories" class="result-categories"></div>
+        </section>
+
+        <section class="result-panel result-review" aria-labelledby="result-mistakes-title">
+          <div class="panel-head">
+            <h2 id="result-mistakes-title">Разбор ошибок</h2>
+            <span class="panel-note" id="result-mistakes-count"></span>
+          </div>
+          <div id="result-mistakes" class="review-list"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <span class="footer-mark">J<span>}</span></span>
+      <span>JavaTory — локальный тренажёр для Senior Java Backend</span>
+    </div>
+    <div class="footer-right">
+      <span>350 вопросов</span>
+      <span aria-hidden="true">·</span>
+      <span>9 категорий</span>
+      <span aria-hidden="true">·</span>
+      <span>прогресс в localStorage</span>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data/core.js"></script>
+  <script src="js/data/collections.js"></script>
+  <script src="js/data/concurrency.js"></script>
+  <script src="js/data/jvm.js"></script>
+  <script src="js/data/sql.js"></script>
+  <script src="js/data/jpa.js"></script>
+  <script src="js/data/spring.js"></script>
+  <script src="js/data/kafka.js"></script>
+  <script src="js/data/architecture.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
