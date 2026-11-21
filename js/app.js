@@ -370,6 +370,7 @@
 
   function showView(name) {
     state.view = name;
+    document.body.dataset.view = name;
     ["home", "quiz", "result"].forEach((view) => {
       const element = els[`${view}-view`];
       if (element) element.hidden = view !== name;
