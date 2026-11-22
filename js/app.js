@@ -67,7 +67,69 @@
     }
   ];
 
+  const LEGEND_CATEGORIES = [
+    {
+      id: "legend-architecture",
+      title: "Легенда и архитектура",
+      icon: "◫",
+      accent: "#f4b860",
+      description: "Проект, сервисы, State Machine + Choreography и почему не Camunda."
+    },
+    {
+      id: "legend-payment-flow",
+      title: "Payment flow и State Machine",
+      icon: "⇢",
+      accent: "#ffd166",
+      description: "Полная цепочка, статусы, переходы, комиссия и webhook."
+    },
+    {
+      id: "legend-outbox",
+      title: "Outbox и идемпотентность",
+      icon: "⇄",
+      accent: "#62d99b",
+      description: "Dual-write, relay, Redis SET NX, unique constraints и инцидент с комиссиями."
+    },
+    {
+      id: "legend-kafka",
+      title: "Kafka в проекте",
+      icon: "⇶",
+      accent: "#ff8fb2",
+      description: "Топики, acks, manual commit, read_committed, партиции и consumer lag."
+    },
+    {
+      id: "legend-resilience",
+      title: "Отказоустойчивость и инциденты",
+      icon: "◈",
+      accent: "#ff8b8b",
+      description: "Падения сервисов, retry/fallback, PENDING и разбор четырёх инцидентов."
+    },
+    {
+      id: "legend-observability",
+      title: "Мониторинг и эксплуатация",
+      icon: "⌁",
+      accent: "#82c7ff",
+      description: "Grafana/Prometheus, cardinality, метрики, Hikari и Redis."
+    },
+    {
+      id: "legend-extra-java",
+      title: "Дополнительно: Java и Spring",
+      icon: "{ }",
+      accent: "#b9a0ff",
+      description: "Транзакции, JPA, пулы, Java 21, тесты, безопасность и webhook."
+    },
+    {
+      id: "legend-extra-system",
+      title: "Дополнительно: System Design",
+      icon: "⌘",
+      accent: "#70dfd3",
+      description: "Saga, 2PC, Kafka, БД, кэш, SLO, deployment и reconciliation."
+    }
+  ];
+
   const CATEGORY_BY_ID = new Map(CATEGORIES.map((category) => [category.id, category]));
+  const LEGEND_CATEGORY_BY_ID = new Map(LEGEND_CATEGORIES.map((category) => [category.id, category]));
+  const TRACK_CATEGORIES = { base: CATEGORIES, legend: LEGEND_CATEGORIES };
+  const TRACK_CATEGORY_BY_ID = { base: CATEGORY_BY_ID, legend: LEGEND_CATEGORY_BY_ID };
   const LEVEL_LABELS = {
     middle: "Разминка",
     senior: "Senior",
@@ -85,7 +147,14 @@
     .filter((question) => question && Array.isArray(question.options) && question.options.length === 4)
     .slice();
 
-  const QUESTION_BY_ID = new Map(QUESTIONS.map((question) => [question.id, question]));
+  const LEGEND_QUESTIONS = (Array.isArray(window.JavaToryLegendData) ? window.JavaToryLegendData : [])
+    .filter((question) => question && Array.isArray(question.options) && question.options.length === 4)
+    .slice();
+
+  const TRACK_QUESTIONS = { base: QUESTIONS, legend: LEGEND_QUESTIONS };
+  const ALL_QUESTION_BY_ID = new Map(
+    [...QUESTIONS, ...LEGEND_QUESTIONS].map((question) => [question.id, question])
+  );
   const storedBookmarks = loadJSON(STORAGE_KEYS.bookmarks, []);
 
   const state = {
@@ -93,7 +162,7 @@
     progress: loadJSON(STORAGE_KEYS.progress, {}),
     meta: loadJSON(STORAGE_KEYS.meta, { currentStreak: 0, bestStreak: 0 }),
     bookmarks: new Set(Array.isArray(storedBookmarks) ? storedBookmarks : []),
-    settings: loadJSON(STORAGE_KEYS.settings, { difficulty: "all", limit: 20 }),
+    settings: loadJSON(STORAGE_KEYS.settings, { difficulty: "all", limit: 20, legendLimit: 0 }),
     session: null,
     lastResult: null
   };
@@ -112,9 +181,13 @@
   if (![0, 20, 30, 50].includes(Number(state.settings?.limit))) {
     state.settings = { ...state.settings, limit: 20 };
   }
+  if (![0, 30, 50, 100].includes(Number(state.settings?.legendLimit))) {
+    state.settings = { ...state.settings, legendLimit: 0 };
+  }
   state.settings.limit = Number(state.settings.limit);
+  state.settings.legendLimit = Number(state.settings.legendLimit);
   state.bookmarks = new Set(
-    [...state.bookmarks].filter((id) => QUESTION_BY_ID.has(id))
+    [...state.bookmarks].filter((id) => ALL_QUESTION_BY_ID.has(id))
   );
 
   const els = {};
@@ -125,12 +198,17 @@
 
   function cacheElements() {
     [
-      "home-view", "quiz-view", "result-view", "brand-home", "reset-progress",
+      "home-view", "legend-view", "quiz-view", "result-view", "brand-home", "reset-progress",
       "header-answered", "header-total", "stat-answered", "stat-accuracy",
       "stat-streak", "stat-bookmarks", "bookmarks-count", "start-mix",
       "start-bookmarks", "start-mistakes", "start-bookmarks-2", "mix-meta",
       "mistakes-hint", "bookmarks-hint", "difficulty-filter", "limit-filter",
-      "category-grid", "quiz-session-title", "quiz-score", "quiz-progress",
+      "category-grid", "open-legend", "legend-back", "legend-start", "legend-start-label",
+      "legend-mistakes", "legend-mistakes-count", "legend-limit", "legend-start-meta",
+      "legend-stat-answered", "legend-stat-accuracy", "legend-stat-mistakes",
+      "legend-stat-bookmarks", "legend-category-grid", "legend-banner-fill",
+      "legend-banner-progress", "legend-banner-bar",
+      "quiz-session-title", "quiz-score", "quiz-progress",
       "quiz-progress-fill", "quiz-progress-label", "q-category", "q-level",
       "bookmark-btn", "q-code-wrap", "q-code", "question-text", "options",
       "feedback", "prev-btn", "next-btn", "next-label", "quit-quiz",
@@ -233,76 +311,100 @@
     return state.settings.difficulty === "all" || question.level === state.settings.difficulty;
   }
 
+  function trackForView() {
+    if (state.view === "legend") return "legend";
+    if (state.view === "quiz" && state.session?.track === "legend") return "legend";
+    if (state.view === "result" && state.lastResult?.track === "legend") return "legend";
+    return "base";
+  }
+
   function poolFor(mode, options = {}) {
+    const track = options.track === "legend" ? "legend" : "base";
+    const bank = TRACK_QUESTIONS[track];
     let pool;
+
     if (Array.isArray(options.ids) && options.ids.length > 0) {
       const ids = new Set(options.ids);
-      pool = QUESTIONS.filter((question) => ids.has(question.id));
+      pool = bank.filter((question) => ids.has(question.id));
     } else if (mode === "category") {
-      pool = QUESTIONS.filter((question) => question.category === options.categoryId);
+      pool = bank.filter((question) => question.category === options.categoryId);
     } else if (mode === "mistakes") {
-      pool = QUESTIONS.filter((question) => {
+      pool = bank.filter((question) => {
         const progress = state.progress[question.id];
         return progress && progress.lastCorrect === false;
       });
     } else if (mode === "bookmarks") {
-      pool = QUESTIONS.filter((question) => state.bookmarks.has(question.id));
+      pool = bank.filter((question) => state.bookmarks.has(question.id));
     } else {
-      pool = QUESTIONS.slice();
+      pool = bank.slice();
     }
 
-    if (!Array.isArray(options.ids)) {
+    if (track === "base" && !Array.isArray(options.ids)) {
       pool = pool.filter(levelMatches);
     }
     return pool;
   }
 
   function sessionQuestions(mode, options = {}) {
+    const track = options.track === "legend" ? "legend" : "base";
     const pool = shuffle(poolFor(mode, options));
-    const limit = Number(state.settings.limit);
-    return limit > 0 ? pool.slice(0, limit) : pool;
+    const configured = track === "legend"
+      ? Number(state.settings.legendLimit)
+      : Number(state.settings.limit);
+    return configured > 0 ? pool.slice(0, configured) : pool;
   }
 
-  function countMistakes() {
-    return QUESTIONS.reduce((count, question) => {
+  function countMistakes(questions = QUESTIONS) {
+    return questions.reduce((count, question) => {
       const progress = state.progress[question.id];
       return progress && progress.lastCorrect === false ? count + 1 : count;
     }, 0);
   }
 
-  function answeredCount() {
-    return QUESTIONS.reduce((count, question) => (
+  function answeredCount(questions = QUESTIONS) {
+    return questions.reduce((count, question) => (
       state.progress[question.id] ? count + 1 : count
     ), 0);
   }
 
-  function accuracy() {
+  function accuracy(questions = QUESTIONS) {
+    const ids = new Set(questions.map((question) => question.id));
     let attempts = 0;
     let correct = 0;
-    Object.values(state.progress).forEach((entry) => {
-      if (!entry || typeof entry !== "object") return;
+    Object.entries(state.progress).forEach(([id, entry]) => {
+      if (!ids.has(id) || !entry || typeof entry !== "object") return;
       attempts += Number(entry.attempts) || 0;
       correct += Number(entry.correct) || 0;
     });
     return { attempts, correct, value: percent(correct, attempts) };
   }
 
+  function bookmarkedQuestions(questions) {
+    return questions.filter((question) => state.bookmarks.has(question.id));
+  }
+
   function updateHeader() {
-    const studied = answeredCount();
+    const activeBank = TRACK_QUESTIONS[trackForView()];
+    const studied = answeredCount(activeBank);
     if (els["header-answered"]) els["header-answered"].textContent = String(studied);
-    if (els["header-total"]) els["header-total"].textContent = String(QUESTIONS.length);
-    if (els["stat-answered"]) els["stat-answered"].textContent = String(studied);
+    if (els["header-total"]) els["header-total"].textContent = String(activeBank.length);
+    if (els["stat-answered"]) els["stat-answered"].textContent = String(answeredCount(QUESTIONS));
     if (els["stat-accuracy"]) {
-      const value = accuracy();
+      const value = accuracy(QUESTIONS);
       els["stat-accuracy"].textContent = value.attempts > 0 ? `${value.value}%` : "—";
     }
     if (els["stat-streak"]) els["stat-streak"].textContent = String(state.meta.bestStreak || 0);
-    if (els["stat-bookmarks"]) els["stat-bookmarks"].textContent = String(state.bookmarks.size);
+    if (els["stat-bookmarks"]) {
+      els["stat-bookmarks"].textContent = String(bookmarkedQuestions(QUESTIONS).length);
+    }
   }
 
   function updateTotalLabels() {
     document.querySelectorAll("[data-total]").forEach((element) => {
       element.textContent = String(QUESTIONS.length);
+    });
+    document.querySelectorAll("[data-legend-total]").forEach((element) => {
+      element.textContent = String(LEGEND_QUESTIONS.length);
     });
   }
 
@@ -315,21 +417,22 @@
 
     renderCategoryGrid();
 
-    const mistakes = countMistakes();
+    const mistakes = countMistakes(QUESTIONS);
+    const baseBookmarks = bookmarkedQuestions(QUESTIONS).length;
     if (els["mistakes-hint"]) {
       els["mistakes-hint"].textContent = mistakes > 0
         ? `${mistakes} ${questionWord(mistakes)} ждёт разбора`
         : "Пока нет ошибок — отличный старт";
     }
     if (els["bookmarks-hint"]) {
-      els["bookmarks-hint"].textContent = state.bookmarks.size > 0
-        ? `${state.bookmarks.size} ${questionWord(state.bookmarks.size)} сохранено`
+      els["bookmarks-hint"].textContent = baseBookmarks > 0
+        ? `${baseBookmarks} ${questionWord(baseBookmarks)} сохранено`
         : "Отмечайте вопросы звёздочкой во время теста";
     }
     if (els["start-mistakes"]) els["start-mistakes"].disabled = mistakes === 0;
-    if (els["start-bookmarks"]) els["start-bookmarks"].disabled = state.bookmarks.size === 0;
-    if (els["start-bookmarks-2"]) els["start-bookmarks-2"].disabled = state.bookmarks.size === 0;
-    if (els["bookmarks-count"]) els["bookmarks-count"].textContent = String(state.bookmarks.size);
+    if (els["start-bookmarks"]) els["start-bookmarks"].disabled = baseBookmarks === 0;
+    if (els["start-bookmarks-2"]) els["start-bookmarks-2"].disabled = baseBookmarks === 0;
+    if (els["bookmarks-count"]) els["bookmarks-count"].textContent = String(baseBookmarks);
 
     const available = poolFor("mix").length;
     const limit = Number(state.settings.limit);
@@ -340,49 +443,113 @@
         : "Для выбранного уровня пока нет вопросов";
     }
     if (els["start-mix"]) els["start-mix"].disabled = available === 0;
+
+    renderLegendBanner();
+  }
+
+  function renderLegendBanner() {
+    const studied = answeredCount(LEGEND_QUESTIONS);
+    const coverage = percent(studied, LEGEND_QUESTIONS.length);
+    if (els["legend-banner-fill"]) els["legend-banner-fill"].style.width = `${coverage}%`;
+    if (els["legend-banner-progress"]) els["legend-banner-progress"].textContent = `${coverage}%`;
+    if (els["legend-banner-bar"]) els["legend-banner-bar"].setAttribute("aria-valuenow", String(coverage));
+    if (els["open-legend"]) els["open-legend"].disabled = LEGEND_QUESTIONS.length === 0;
+  }
+
+  function categoryCardMarkup(category, questions, dataAttribute) {
+    const studied = questions.filter((question) => state.progress[question.id]).length;
+    const coverage = percent(studied, questions.length);
+    return `
+      <button class="category-card" type="button" ${dataAttribute}="${category.id}"
+        style="--accent: ${category.accent}"
+        aria-label="${escapeHtml(category.title)}: ${questions.length} ${questionWord(questions.length)}, изучено ${coverage}%">
+        <span class="cat-top">
+          <span class="cat-icon" aria-hidden="true">${category.icon}</span>
+          <span class="cat-start" aria-hidden="true">→</span>
+        </span>
+        <span class="cat-name">${escapeHtml(category.title)}</span>
+        <span class="cat-desc">${escapeHtml(category.description)}</span>
+        <span class="cat-meta">
+          <span>${questions.length} ${questionWord(questions.length)}</span>
+          <b>${studied > 0 ? `${coverage}%` : "—"}</b>
+        </span>
+        <span class="cat-progress" aria-hidden="true"><i style="width: ${coverage}%"></i></span>
+      </button>
+    `;
   }
 
   function renderCategoryGrid() {
     if (!els["category-grid"]) return;
     els["category-grid"].innerHTML = CATEGORIES.map((category) => {
       const questions = QUESTIONS.filter((question) => question.category === category.id);
-      const studied = questions.filter((question) => state.progress[question.id]).length;
-      const coverage = percent(studied, questions.length);
-      return `
-        <button class="category-card" type="button" data-category="${category.id}"
-          style="--accent: ${category.accent}"
-          aria-label="${escapeHtml(category.title)}: ${questions.length} ${questionWord(questions.length)}, изучено ${coverage}%">
-          <span class="cat-top">
-            <span class="cat-icon" aria-hidden="true">${category.icon}</span>
-            <span class="cat-start" aria-hidden="true">→</span>
-          </span>
-          <span class="cat-name">${escapeHtml(category.title)}</span>
-          <span class="cat-desc">${escapeHtml(category.description)}</span>
-          <span class="cat-meta">
-            <span>${questions.length} ${questionWord(questions.length)}</span>
-            <b>${studied > 0 ? `${coverage}%` : "—"}</b>
-          </span>
-          <span class="cat-progress" aria-hidden="true"><i style="width: ${coverage}%"></i></span>
-        </button>
-      `;
+      return categoryCardMarkup(category, questions, "data-category");
     }).join("");
+  }
+
+  function renderLegend() {
+    if (LEGEND_QUESTIONS.length === 0) return;
+
+    const studied = answeredCount(LEGEND_QUESTIONS);
+    const legendAccuracy = accuracy(LEGEND_QUESTIONS);
+    const mistakes = countMistakes(LEGEND_QUESTIONS);
+    const bookmarks = bookmarkedQuestions(LEGEND_QUESTIONS).length;
+    const configured = Number(state.settings.legendLimit);
+    const planned = configured > 0 ? Math.min(configured, LEGEND_QUESTIONS.length) : LEGEND_QUESTIONS.length;
+
+    updateTotalLabels();
+    if (els["legend-stat-answered"]) els["legend-stat-answered"].textContent = String(studied);
+    if (els["legend-stat-accuracy"]) {
+      els["legend-stat-accuracy"].textContent = legendAccuracy.attempts > 0
+        ? `${legendAccuracy.value}%`
+        : "—";
+    }
+    if (els["legend-stat-mistakes"]) els["legend-stat-mistakes"].textContent = String(mistakes);
+    if (els["legend-stat-bookmarks"]) els["legend-stat-bookmarks"].textContent = String(bookmarks);
+    if (els["legend-mistakes-count"]) els["legend-mistakes-count"].textContent = String(mistakes);
+    if (els["legend-mistakes"]) els["legend-mistakes"].disabled = mistakes === 0;
+    if (els["legend-limit"]) els["legend-limit"].value = String(configured);
+    if (els["legend-start-label"]) {
+      els["legend-start-label"].textContent = planned === LEGEND_QUESTIONS.length
+        ? "Начать весь тест"
+        : `Начать тест (${planned})`;
+    }
+    if (els["legend-start-meta"]) {
+      els["legend-start-meta"].textContent = `${planned} ${questionWord(planned)} · ${planned === LEGEND_QUESTIONS.length ? "весь трек" : "случайная выборка"}`;
+    }
+    if (els["legend-start"]) els["legend-start"].disabled = LEGEND_QUESTIONS.length === 0;
+
+    if (els["legend-category-grid"]) {
+      els["legend-category-grid"].innerHTML = LEGEND_CATEGORIES.map((category) => {
+        const questions = LEGEND_QUESTIONS.filter((question) => question.category === category.id);
+        return categoryCardMarkup(category, questions, "data-legend-category");
+      }).join("");
+    }
+
+    updateHeader();
   }
 
   function showView(name) {
     state.view = name;
     document.body.dataset.view = name;
-    ["home", "quiz", "result"].forEach((view) => {
+    ["home", "legend", "quiz", "result"].forEach((view) => {
       const element = els[`${view}-view`];
       if (element) element.hidden = view !== name;
     });
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
+  function openLegend() {
+    state.session = null;
+    showView("legend");
+    renderLegend();
+  }
+
   function startSession(mode, options = {}) {
-    const questions = sessionQuestions(mode, options);
+    const track = options.track === "legend" ? "legend" : "base";
+    const questions = sessionQuestions(mode, { ...options, track });
     if (questions.length === 0) {
       if (mode === "mistakes") {
-        toast("Ошибок для выбранного уровня пока нет");
+        toast(track === "legend" ? "Ошибок по легенде пока нет" : "Ошибок для выбранного уровня пока нет");
       } else if (mode === "bookmarks") {
         toast("В закладках пока нет вопросов для выбранного уровня");
       } else {
@@ -391,15 +558,15 @@
       return;
     }
 
-    let title = options.title || "Микс";
+    let title = options.title || (track === "legend" ? "Легенда" : "Микс");
     if (mode === "category") {
-      title = CATEGORY_BY_ID.get(options.categoryId)?.title || "Категория";
+      title = TRACK_CATEGORY_BY_ID[track].get(options.categoryId)?.title || "Категория";
     } else if (mode === "mistakes" && !options.title) {
-      title = "Работа над ошибками";
+      title = track === "legend" ? "Ошибки по легенде" : "Работа над ошибками";
     } else if (mode === "bookmarks" && !options.title) {
       title = "Закладки";
     } else if (mode === "mix" && !options.title) {
-      title = "Микс · все темы";
+      title = track === "legend" ? "Легенда · весь тест" : "Микс · все темы";
     }
 
     state.session = {
@@ -409,6 +576,7 @@
       startedAt: Date.now(),
       mode,
       categoryId: options.categoryId || null,
+      track,
       title
     };
     state.lastResult = null;
@@ -430,7 +598,7 @@
     const question = currentQuestion();
     if (!session || !question) return;
 
-    const category = CATEGORY_BY_ID.get(question.category) || {
+    const category = TRACK_CATEGORY_BY_ID[session.track || "base"].get(question.category) || {
       title: question.category,
       accent: "#d8ff72"
     };
@@ -556,6 +724,16 @@
     }).join("");
 
     els["side-count"].textContent = `${session.answers.size} / ${session.questions.length}`;
+
+    const currentDot = els["question-map"].querySelector(".is-current");
+    if (currentDot) {
+      const map = els["question-map"];
+      const mapRect = map.getBoundingClientRect();
+      const dotRect = currentDot.getBoundingClientRect();
+      const target = map.scrollTop + (dotRect.top - mapRect.top)
+        - ((map.clientHeight - dotRect.height) / 2);
+      map.scrollTop = Math.max(0, target);
+    }
   }
 
   function handleAnswer(index) {
@@ -681,6 +859,7 @@
       percentage: percent(correct, total),
       duration: Date.now() - session.startedAt,
       title: session.title,
+      track: session.track || "base",
       questions: session.questions.slice(),
       answers: new Map(session.answers)
     };
@@ -718,6 +897,9 @@
     els["result-repeat-mistakes"].textContent = result.wrong > 0
       ? `Повторить ошибки (${result.wrong})`
       : "Ошибок нет";
+    els["result-new-mix"].textContent = result.track === "legend"
+      ? "Новый тест по легенде"
+      : "Новый микс";
 
     renderResultCategories(result);
     renderResultMistakes(result);
@@ -738,7 +920,8 @@
       }
     });
 
-    const rows = CATEGORIES
+    const categories = TRACK_CATEGORIES[result.track || "base"];
+    const rows = categories
       .filter((category) => stats.has(category.id))
       .map((category) => {
         const entry = stats.get(category.id);
@@ -777,9 +960,10 @@
       return;
     }
 
+    const categoryMap = TRACK_CATEGORY_BY_ID[result.track || "base"];
     els["result-mistakes"].innerHTML = wrongQuestions.map((question) => {
       const answer = result.answers.get(question.id);
-      const category = CATEGORY_BY_ID.get(question.category);
+      const category = categoryMap.get(question.category);
       return `
         <article class="review-item">
           <div class="review-meta">
@@ -811,15 +995,19 @@
       );
       if (!shouldQuit) return;
     }
+    if (session.track === "legend") {
+      openLegend();
+      return;
+    }
     state.session = null;
-    renderHome();
     showView("home");
+    renderHome();
   }
 
   function goHome() {
     state.session = null;
-    renderHome();
     showView("home");
+    renderHome();
   }
 
   function resetProgress() {
@@ -838,11 +1026,11 @@
     state.progress = {};
     state.meta = { currentStreak: 0, bestStreak: 0 };
     state.bookmarks = new Set();
-    state.settings = { difficulty: "all", limit: 20 };
+    state.settings = { difficulty: "all", limit: 20, legendLimit: 0 };
     state.session = null;
     state.lastResult = null;
-    renderHome();
     showView("home");
+    renderHome();
     toast("Прогресс сброшен");
   }
 
@@ -859,11 +1047,35 @@
 
   function bindEvents() {
     els["start-mix"].addEventListener("click", () => startSession("mix"));
-    els["result-new-mix"].addEventListener("click", () => startSession("mix"));
+    els["result-new-mix"].addEventListener("click", () => {
+      if (state.lastResult?.track === "legend") {
+        startSession("mix", { track: "legend" });
+      } else {
+        startSession("mix");
+      }
+    });
 
     els["start-bookmarks"].addEventListener("click", () => startSession("bookmarks"));
     els["start-bookmarks-2"].addEventListener("click", () => startSession("bookmarks"));
     els["start-mistakes"].addEventListener("click", () => startSession("mistakes"));
+
+    els["open-legend"].addEventListener("click", openLegend);
+    els["legend-back"].addEventListener("click", goHome);
+    els["legend-start"].addEventListener("click", () => startSession("mix", { track: "legend" }));
+    els["legend-mistakes"].addEventListener("click", () => startSession("mistakes", { track: "legend" }));
+    els["legend-limit"].addEventListener("change", (event) => {
+      state.settings.legendLimit = Number(event.target.value);
+      saveSettings();
+      renderLegend();
+    });
+    els["legend-category-grid"].addEventListener("click", (event) => {
+      const card = event.target.closest("[data-legend-category]");
+      if (!card) return;
+      startSession("category", {
+        track: "legend",
+        categoryId: card.dataset.legendCategory
+      });
+    });
 
     els["category-grid"].addEventListener("click", (event) => {
       const card = event.target.closest("[data-category]");
@@ -907,9 +1119,11 @@
         toast("Ошибок нет — повторять нечего");
         return;
       }
+      const track = state.lastResult?.track === "legend" ? "legend" : "base";
       startSession("mistakes", {
         ids: wrongIds,
-        title: "Разбор ошибок сессии"
+        track,
+        title: track === "legend" ? "Разбор ошибок по легенде" : "Разбор ошибок сессии"
       });
     });
 

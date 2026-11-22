@@ -43,7 +43,7 @@
         <div class="hero-copy">
           <div class="eyebrow">
             <span class="eyebrow-dot" aria-hidden="true"></span>
-            <span><b data-total>350</b> вопросов · Senior Backend</span>
+            <span><b data-total>350</b> общих вопросов · Senior Backend</span>
           </div>
           <h1 id="hero-title">Проверьте себя<br><em>до собеседования.</em></h1>
           <p class="hero-lead">
@@ -121,6 +121,35 @@
             <span class="stat-value" id="stat-bookmarks">0</span>
             <span class="stat-label">в закладках</span>
           </div>
+        </div>
+      </section>
+
+      <section class="legend-banner" aria-labelledby="legend-banner-title">
+        <div class="legend-banner-main">
+          <span class="legend-badge">Отдельный трек · B2B Payment Aggregator</span>
+          <h2 id="legend-banner-title">Собеседование по вашей легенде</h2>
+          <p>
+            260 вопросов по технической легенде и смежным темам: State Machine, Outbox,
+            идемпотентность, Kafka, инциденты, мониторинг и дополнительные вопросы с собеседований.
+          </p>
+          <div class="legend-banner-meta">
+            <span><b data-legend-total>260</b> вопросов</span>
+            <span>186 по легенде</span>
+            <span>74 дополнительных</span>
+          </div>
+          <div class="legend-banner-progress">
+            <div class="legend-progress-track" role="progressbar" aria-label="Прогресс по легенде" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="legend-banner-bar">
+              <span id="legend-banner-fill"></span>
+            </div>
+            <span id="legend-banner-progress">0%</span>
+          </div>
+        </div>
+        <div class="legend-banner-cta">
+          <button class="btn btn-primary btn-large" id="open-legend" type="button">
+            <span>Открыть трек</span>
+            <span class="btn-arrow" aria-hidden="true">→</span>
+          </button>
+          <span class="legend-banner-hint">Не смешивается с общей базой</span>
         </div>
       </section>
 
@@ -206,6 +235,115 @@
           </article>
         </div>
       </section>
+    </section>
+
+    <!-- Отдельный трек по технической легенде -->
+    <section id="legend-view" class="view" hidden aria-labelledby="legend-hero-title">
+      <div class="legend-topbar">
+        <button class="ghost-btn" id="legend-back" type="button">
+          <span aria-hidden="true">←</span> На главную
+        </button>
+        <span class="legend-context">Отдельный трек · техническая легенда</span>
+      </div>
+
+      <header class="legend-hero">
+        <div class="legend-hero-copy">
+          <span class="legend-badge">B2B Payment Aggregator · Middle+</span>
+          <h1 id="legend-hero-title">Собеседование<br><em>по вашей легенде.</em></h1>
+          <p class="legend-lead">
+            186 вопросов по фактам и решениям из PDF плюс 74 дополнительных вопроса,
+            которые могут задать на техническом интервью. Отдельный прогресс, отдельные сессии,
+            общая база не затрагивается.
+          </p>
+          <div class="legend-hero-actions">
+            <button class="btn btn-primary btn-large" id="legend-start" type="button">
+              <span id="legend-start-label">Начать весь тест</span>
+              <span class="btn-arrow" aria-hidden="true">→</span>
+            </button>
+            <button class="btn btn-secondary" id="legend-mistakes" type="button">
+              <span>Ошибки</span>
+              <span class="btn-badge" id="legend-mistakes-count">0</span>
+            </button>
+          </div>
+          <div class="legend-start-row">
+            <label class="select-wrap">
+              <span>Длина теста</span>
+              <select id="legend-limit">
+                <option value="0">Все 260 вопросов</option>
+                <option value="100">100 вопросов</option>
+                <option value="50">50 вопросов</option>
+                <option value="30">30 вопросов</option>
+              </select>
+            </label>
+            <span class="legend-start-meta" id="legend-start-meta">260 вопросов · весь трек</span>
+          </div>
+        </div>
+
+        <aside class="legend-summary" aria-label="Состав трека">
+          <span class="legend-summary-label">Что внутри</span>
+          <ul class="legend-facts-list">
+            <li><b>186</b><span>фактов и решений из легенды</span></li>
+            <li><b>74</b><span>дополнительных вопроса по стеку</span></li>
+            <li><b>8</b><span>тематических блоков</span></li>
+            <li><b>3</b><span>уровня сложности</span></li>
+          </ul>
+          <div class="legend-stack">
+            <span>State Machine</span>
+            <span>Outbox</span>
+            <span>Kafka</span>
+            <span>Resilience4j</span>
+            <span>PostgreSQL</span>
+            <span>Redis</span>
+          </div>
+        </aside>
+      </header>
+
+      <section class="stats-bar legend-stats" aria-label="Прогресс по легенде">
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">◐</span>
+          <div>
+            <span class="stat-value" id="legend-stat-answered">0</span>
+            <span class="stat-label">изучено в легенде</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">◎</span>
+          <div>
+            <span class="stat-value" id="legend-stat-accuracy">—</span>
+            <span class="stat-label">точность по легенде</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">↺</span>
+          <div>
+            <span class="stat-value" id="legend-stat-mistakes">0</span>
+            <span class="stat-label">ошибок для разбора</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">☆</span>
+          <div>
+            <span class="stat-value" id="legend-stat-bookmarks">0</span>
+            <span class="stat-label">в закладках трека</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="legend-categories" aria-labelledby="legend-categories-title">
+        <div class="section-head">
+          <div>
+            <p class="kicker">Блоки трека</p>
+            <h2 id="legend-categories-title">Выберите блок или пройдите всё</h2>
+          </div>
+          <p class="legend-categories-note">Вопросы берутся только из легенды и доп. блока</p>
+        </div>
+        <div id="legend-category-grid" class="category-grid legend-grid"></div>
+      </section>
+
+      <div class="legend-note">
+        <span class="note-mark">i</span>
+        <p>Трек независим от основной базы: прогресс и сессии по легенде не меняют счётчики 350 общих вопросов.</p>
+      </div>
     </section>
 
     <!-- Экран прохождения теста -->
@@ -333,11 +471,11 @@
       <span>JavaTory — локальный тренажёр для Senior Java Backend</span>
     </div>
     <div class="footer-right">
-      <span>350 вопросов</span>
+      <span>350 общих вопросов</span>
       <span aria-hidden="true">·</span>
-      <span>9 категорий</span>
+      <span>260 по легенде</span>
       <span aria-hidden="true">·</span>
-      <span>прогресс в localStorage</span>
+      <span>2 трека</span>
     </div>
   </footer>
 
@@ -352,6 +490,14 @@
   <script src="js/data/spring.js"></script>
   <script src="js/data/kafka.js"></script>
   <script src="js/data/architecture.js"></script>
+  <script src="js/data/legend/architecture.js"></script>
+  <script src="js/data/legend/flow.js"></script>
+  <script src="js/data/legend/outbox.js"></script>
+  <script src="js/data/legend/kafka.js"></script>
+  <script src="js/data/legend/resilience.js"></script>
+  <script src="js/data/legend/observability.js"></script>
+  <script src="js/data/legend/extra-java.js"></script>
+  <script src="js/data/legend/extra-system.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
